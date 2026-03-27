@@ -162,6 +162,8 @@ button {
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  gap: 10px;               /* vertical space between headline and groups, and between the two rows */
+  padding: 0 12px 10px;    /* horizontal breathing room + bottom gap before footer */
 }
 
 /* Headline block */
@@ -202,7 +204,7 @@ button {
   display: flex;
   flex: 1;
   min-height: 0;
-  border-top: var(--border-width) solid var(--black);
+  gap: 10px;   /* horizontal space between the two tiles in a row */
 }
 
 /* ── Tile ───────────────────────────────────────────────────────────────── */
@@ -215,8 +217,7 @@ button {
   justify-content: center;
   gap: 10px;
   padding: 16px 8px;
-  border: none;
-  border-right: var(--border-width) solid var(--black);
+  border: var(--border-width) solid var(--black);
   background: var(--white);
   color: var(--black);
   -webkit-text-fill-color: var(--black);
@@ -227,9 +228,7 @@ button {
   text-decoration: none;
 }
 
-.tile:last-child {
-  border-right: none;
-}
+/* Each tile has its own full border — no last-child override needed */
 
 .tile-icon {
   color: var(--black);
