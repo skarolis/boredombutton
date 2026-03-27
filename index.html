@@ -113,6 +113,25 @@
         <p class="directive-label">CURRENT DIRECTIVE</p>
         <h1 id="taskText" class="task-text"></h1>
         <p id="taskSubtitle" class="task-subtitle"></p>
+
+        <!-- Write field — shown only for writing tasks -->
+        <div id="writeArea" class="extra-area extra-area--hidden">
+          <label class="extra-label" for="writeField">YOUR NOTES</label>
+          <textarea id="writeField" class="write-field" placeholder="Start writing..."></textarea>
+        </div>
+
+        <!-- Camera area — shown only for photography tasks -->
+        <div id="cameraArea" class="extra-area extra-area--hidden">
+          <!-- Hidden file input — triggered by the button below -->
+          <input type="file" id="cameraInput" accept="image/*" class="camera-input" aria-label="Take or attach photo">
+          <button id="cameraBtn" class="camera-btn">OPEN CAMERA</button>
+          <!-- Photo preview — shown after capture -->
+          <div id="photoPreview" class="photo-preview extra-area--hidden">
+            <img id="photoImg" alt="Your captured photo">
+            <button id="removePhotoBtn" class="remove-photo-btn">REMOVE PHOTO</button>
+          </div>
+        </div>
+
         <div class="timer-wrapper">
           <div id="timer" class="timer">00:00</div>
         </div>

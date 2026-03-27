@@ -12,6 +12,19 @@ let currentTask    = null;
 let timerInterval  = null;
 let secondsLeft    = 0;
 
+// ── Keyword lists for UI detection ─────────────────────────────────────────
+
+const WRITE_KEYWORDS = [
+  'WRITE', 'LIST', 'DESCRIBE', 'DRAFT', 'NOTE', 'NOTES',
+  'RECORD', 'JOT', 'COMPOSE', 'NAME EVERY', 'NAME ALL',
+  'MAKE A LIST', 'WRITE DOWN', 'WRITE OUT'
+];
+
+const CAMERA_KEYWORDS = [
+  'PHOTOGRAPH', 'PHOTO', 'CAPTURE', 'SHOOT', 'FILM',
+  'TAKE A PICTURE', 'TAKE A PHOTO', 'DOCUMENT'
+];
+
 // ── DOM refs ───────────────────────────────────────────────────────────────
 
 const selectionScreen = document.getElementById('selectionScreen');
@@ -23,9 +36,21 @@ const doneBtn       = document.getElementById('doneBtn');
 const infoBtn       = document.getElementById('infoBtn');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
-const taskTextEl    = document.getElementById('taskText');
-const taskSubEl     = document.getElementById('taskSubtitle');
-const timerEl       = document.getElementById('timer');
+const taskTextEl = document.getElementById('taskText');
+const taskSubEl  = document.getElementById('taskSubtitle');
+const timerEl    = document.getElementById('timer');
+
+// Write field
+const writeArea  = document.getElementById('writeArea');
+const writeField = document.getElementById('writeField');
+
+// Camera
+const cameraArea     = document.getElementById('cameraArea');
+const cameraInput    = document.getElementById('cameraInput');
+const cameraBtn      = document.getElementById('cameraBtn');
+const photoPreview   = document.getElementById('photoPreview');
+const photoImg       = document.getElementById('photoImg');
+const removePhotoBtn = document.getElementById('removePhotoBtn');
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 
@@ -48,16 +73,13 @@ async function loadTasks() {
 // ── Events ─────────────────────────────────────────────────────────────────
 
 function bindEvents() {
-  // Tile clicks
   document.querySelectorAll('.tile').forEach(tile => {
     tile.addEventListener('click', onTileClick);
   });
 
-  // Action buttons
   rollBtn.addEventListener('click', onRoll);
   doneBtn.addEventListener('click', onDone);
 
-  // Modal
   infoBtn.addEventListener('click',       openModal);
   closeModalBtn.addEventListener('click', closeModal);
   infoModal.addEventListener('click', e => {
@@ -66,6 +88,26 @@ function bindEvents() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && infoModal.classList.contains('active')) closeModal();
   });
+
+  // Camera button triggers the hidden file input
+  cameraBtn.addEventListener('click', () => cameraInput.click());
+
+  // When a photo is selected, show the preview
+  cameraInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    photoImg.src = url;
+    photoPreview.classList.remove('extra-area--hidden');
+  });
+
+  // Remove photo
+  removePhotoBtn.addEventListener('click', () => {
+    if (photoImg.src) URL.revokeObjectURL(photoImg.src);
+    photoImg.src    = '';
+    cameraInput.value = '';
+    photoPreview.classList.add('extra-area--hidden');
+  });
 }
 
 // ── Tile selection ─────────────────────────────────────────────────────────
@@ -73,12 +115,10 @@ function bindEvents() {
 function onTileClick(e) {
   const tile      = e.currentTarget;
   const group     = tile.closest('.tile-group');
-  const groupType = group.dataset.group;   // 'location' | 'social'
-  const value     = tile.dataset.value;    // 'outside' | 'inside' | 'alone' | 'friends'
+  const groupType = group.dataset.group;
+  const value     = tile.dataset.value;
 
-  // Deselect siblings
   group.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
-  // Select this one
   tile.classList.add('selected');
 
   if (groupType === 'location') selectedLoc    = value;
@@ -98,7 +138,6 @@ function refreshRollBtn() {
 
 function buildContext() {
   return `${selectedLoc}_${selectedSocial}`;
-  // Produces: 'outside_alone' | 'outside_friends' | 'inside_alone' | 'inside_friends'
 }
 
 function getRandomTask(context) {
@@ -106,17 +145,69 @@ function getRandomTask(context) {
   if (!pool.length) return null;
 
   const seenKey = `seen_${context}`;
-  let seen = JSON.parse(localStorage.getItem(seenKey) || '[]');
-
+  let seen      = JSON.parse(localStorage.getItem(seenKey) || '[]');
   let available = pool.filter(t => !seen.includes(t.id));
 
-  // Cycled through entire pool — reset and start fresh
   if (!available.length) {
     localStorage.removeItem(seenKey);
     available = pool;
   }
 
   return available[Math.floor(Math.random() * available.length)];
+}
+
+// ── Keyword detection ──────────────────────────────────────────────────────
+
+function detectTaskUI(taskText) {
+  const text = taskText.toUpperCase();
+  return {
+    needsWrite:  WRITE_KEYWORDS.some(kw  => text.includes(kw)),
+    needsCamera: CAMERA_KEYWORDS.some(kw => text.includes(kw))
+  };
+}
+
+// Returns true if this is a touch-only device (phone/tablet)
+function isTouchDevice() {
+  return window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+}
+
+// ── Extra UI (write / camera) ──────────────────────────────────────────────
+
+function setupExtras(task) {
+  const { needsWrite, needsCamera } = detectTaskUI(task.task);
+
+  // Write field
+  writeField.value = '';
+  writeArea.classList.toggle('extra-area--hidden', !needsWrite);
+
+  // Camera
+  if (photoImg.src) URL.revokeObjectURL(photoImg.src);
+  photoImg.src      = '';
+  cameraInput.value = '';
+  photoPreview.classList.add('extra-area--hidden');
+  cameraArea.classList.toggle('extra-area--hidden', !needsCamera);
+
+  // Label the camera button based on device type
+  if (needsCamera) {
+    if (isTouchDevice()) {
+      cameraInput.setAttribute('capture', 'environment');
+      cameraBtn.textContent = 'OPEN CAMERA';
+    } else {
+      cameraInput.removeAttribute('capture');
+      cameraBtn.textContent = 'ATTACH PHOTO';
+    }
+  }
+}
+
+function clearExtras() {
+  writeField.value = '';
+  writeArea.classList.add('extra-area--hidden');
+
+  if (photoImg.src) URL.revokeObjectURL(photoImg.src);
+  photoImg.src      = '';
+  cameraInput.value = '';
+  photoPreview.classList.add('extra-area--hidden');
+  cameraArea.classList.add('extra-area--hidden');
 }
 
 // ── Roll ───────────────────────────────────────────────────────────────────
@@ -128,19 +219,20 @@ function onRoll() {
 
   currentTask = task;
   renderTask(task);
+  setupExtras(task);
   showScreen(taskScreen, selectionScreen);
   startTimer(task.duration);
 }
 
 function renderTask(task) {
-  taskTextEl.innerHTML = highlightText(task.task, task.highlight);
+  taskTextEl.innerHTML  = highlightText(task.task, task.highlight);
   taskSubEl.textContent = task.subtitle;
   timerEl.classList.remove('timer--done');
 }
 
 function highlightText(text, highlight) {
   if (!highlight) return text;
-  const safe  = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const safe = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return text.replace(new RegExp(`(${safe})`), '<span class="highlight">$1</span>');
 }
 
@@ -173,7 +265,6 @@ function renderTimer() {
 function onDone() {
   clearInterval(timerInterval);
 
-  // Mark task as seen
   if (currentTask) {
     const seenKey = `seen_${buildContext()}`;
     const seen    = JSON.parse(localStorage.getItem(seenKey) || '[]');
@@ -183,7 +274,8 @@ function onDone() {
     }
   }
 
-  // Reset selection state
+  clearExtras();
+
   selectedLoc    = null;
   selectedSocial = null;
   currentTask    = null;
