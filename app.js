@@ -133,8 +133,10 @@ let currentTask    = null;
 let timerInterval  = null;
 let secondsLeft    = 0;
 let overlayShown   = false;  // prevent double-triggering
-let capturedFile   = null;   // File object from camera / file picker
-let capturedObjUrl = null;   // object URL for preview (revoked on reset)
+let capturedFile    = null;   // File object from camera / file picker
+let capturedObjUrl  = null;   // object URL for preview (revoked on reset)
+let pendingCardType = null;   // 'writing' | 'photo' | null — set when entering completion screen
+let pendingTaskText = '';     // task text saved before currentTask is cleared
 
 // Detect once: coarse pointer = touchscreen = mobile
 const isMobileDevice = window.matchMedia('(pointer: coarse)').matches;
@@ -160,13 +162,12 @@ const taskTextEl           = document.getElementById('taskText');
 const taskSubEl            = document.getElementById('taskSubtitle');
 const writeField           = document.getElementById('writeField');
 const notesArea            = document.getElementById('notesArea');
-const saveNotesBtn         = document.getElementById('saveNotesBtn');
 const cameraField          = document.getElementById('cameraField');
 const cameraInput          = document.getElementById('cameraInput');
 const cameraBtn            = document.getElementById('cameraBtn');
 const photoPreview         = document.getElementById('photoPreview');
 const capturedPhotoEl      = document.getElementById('capturedPhoto');
-const savePhotoBtn         = document.getElementById('savePhotoBtn');
+const createCardBtn        = document.getElementById('createCardBtn');
 const timerEl              = document.getElementById('timer');
 const timerDoneOverlay     = document.getElementById('timerDoneOverlay');
 const overlayQuestionEl    = document.getElementById('overlayQuestion');
@@ -221,9 +222,6 @@ function initCamera() {
     photoPreview.classList.remove('hidden');
     cameraBtn.textContent = isMobileDevice ? 'RETAKE ›' : 'CHANGE PHOTO ›';
   });
-
-  saveNotesBtn.addEventListener('click', saveNotes);
-  savePhotoBtn.addEventListener('click', savePhoto);
 }
 
 // ── Dark mode ───────────────────────────────────────────────────────────────
@@ -255,6 +253,7 @@ function bindEvents() {
   yesBtn.addEventListener('click', onYes);
   notThisTimeBtn.addEventListener('click', onNotThisTime);
   completionContinueBtn.addEventListener('click', onCompletionContinue);
+  createCardBtn.addEventListener('click', onCreateCard);
 
   infoBtn.addEventListener('click',       openModal);
   closeModalBtn.addEventListener('click', closeModal);
@@ -457,6 +456,15 @@ function onNotThisTime() {
 // ── Completion screen ───────────────────────────────────────────────────────
 
 function showCompletionScreen(total, streak, isFirstToday) {
+  // Save what we need before currentTask gets cleared on navigation
+  pendingTaskText = currentTask ? currentTask.task : '';
+  const hasNote  = notesArea.value.trim().length > 0;
+  const hasPhoto = !!capturedFile;
+  pendingCardType = hasPhoto ? 'photo' : hasNote ? 'writing' : null;
+
+  // Show CREATE CARD only if the user actually produced something
+  createCardBtn.classList.toggle('hidden', !pendingCardType);
+
   const phrase = pickRandom(SUCCESS_PHRASES);
   completionPhraseEl.textContent  = phrase;
   completionCountEl.textContent   = `TASK #${total}`;
@@ -496,13 +504,21 @@ function markTaskSeen() {
 }
 
 function resetAndGoHome(outgoing) {
-  selectedLoc    = null;
-  selectedSocial = null;
-  currentTask    = null;
-  overlayShown   = false;
+  selectedLoc     = null;
+  selectedSocial  = null;
+  currentTask     = null;
+  overlayShown    = false;
+  pendingCardType = null;
+  pendingTaskText = '';
   document.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
+  createCardBtn.classList.add('hidden');
   refreshRollBtn();
   showScreen(selectionScreen, outgoing);
+}
+
+function onCreateCard() {
+  if (pendingCardType === 'photo')   generatePhotoCard();
+  if (pendingCardType === 'writing') generateWritingCard();
 }
 
 // ── Streak & stats ──────────────────────────────────────────────────────────
@@ -561,28 +577,187 @@ function showScreen(incoming, outgoing) {
 function openModal()  { infoModal.classList.add('active');    }
 function closeModal() { infoModal.classList.remove('active'); }
 
-// ── Save to device ───────────────────────────────────────────────────────────
+// ── Card generation ───────────────────────────────────────────────────────────
 
-function saveNotes() {
-  const text = notesArea.value.trim();
-  if (!text) return;
+const CARD_SIZE = 1080;  // square, works for all social platforms
 
-  if (navigator.share) {
-    navigator.share({ text }).catch(() => {});
-  } else {
-    downloadBlob(new Blob([text], { type: 'text/plain' }), 'boredom-notes.txt');
-  }
+// Called by the writing field's CREATE CARD button
+async function generateWritingCard() {
+  const note = notesArea.value.trim();
+  if (!note) return;
+  await document.fonts.ready;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = CARD_SIZE;
+  canvas.height = CARD_SIZE;
+  const ctx = canvas.getContext('2d');
+
+  drawWritingCard(ctx, CARD_SIZE, note, pendingTaskText);
+  shareCanvas(canvas);
 }
 
-function savePhoto() {
-  if (!capturedFile) return;
+// Called by the photo field's CREATE CARD button
+async function generatePhotoCard() {
+  if (!capturedPhotoEl.src) return;
+  await document.fonts.ready;
 
-  if (navigator.canShare && navigator.canShare({ files: [capturedFile] })) {
-    navigator.share({ files: [capturedFile] }).catch(() => {});
+  // Make sure the image element is fully loaded before drawing
+  await new Promise(resolve => {
+    if (capturedPhotoEl.complete) { resolve(); return; }
+    capturedPhotoEl.onload = resolve;
+  });
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = CARD_SIZE;
+  canvas.height = CARD_SIZE;
+  const ctx = canvas.getContext('2d');
+
+  drawPhotoCard(ctx, CARD_SIZE, pendingTaskText);
+  shareCanvas(canvas);
+}
+
+// ── Card renderers ────────────────────────────────────────────────────────────
+
+function drawWritingCard(ctx, size, note, taskText) {
+  const pad = 72;
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+
+  // Chunky black border (matches the app's aesthetic)
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 14;
+  ctx.strokeRect(7, 7, size - 14, size - 14);
+
+  // Branding
+  ctx.fillStyle = '#888888';
+  ctx.font = `700 28px "Inter", sans-serif`;
+  ctx.textBaseline = 'top';
+  ctx.fillText('THE BOREDOM BUTTON', pad, pad);
+
+  // Red accent line under branding
+  ctx.fillStyle = '#D91F26';
+  ctx.fillRect(pad, pad + 44, 72, 8);
+
+  // Task text — Bebas Neue, large, black
+  ctx.fillStyle = '#000000';
+  ctx.font = `88px "Bebas Neue", sans-serif`;
+  ctx.textBaseline = 'top';
+  let y = wrapText(ctx, taskText, pad, pad + 88, size - pad * 2, 92);
+
+  // Separator
+  y += 28;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(pad, y);
+  ctx.lineTo(size - pad, y);
+  ctx.stroke();
+  y += 36;
+
+  // User's note — Inter, smaller, dark grey
+  ctx.fillStyle = '#222222';
+  ctx.font = `400 40px "Inter", sans-serif`;
+  ctx.textBaseline = 'top';
+  wrapText(ctx, note, pad, y, size - pad * 2, 52, 8); // max 8 lines
+}
+
+function drawPhotoCard(ctx, size, taskText) {
+  // Cover-crop the photo to fill the square canvas
+  const img = capturedPhotoEl;
+  const imgAR = img.naturalWidth / img.naturalHeight;
+
+  let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+  if (imgAR > 1) {
+    // Landscape — crop sides
+    sw = sh;
+    sx = (img.naturalWidth - sw) / 2;
   } else {
-    const url = URL.createObjectURL(capturedFile);
-    downloadBlob(capturedFile, capturedFile.name || 'boredom-photo.jpg');
+    // Portrait — crop top/bottom
+    sh = sw;
+    sy = (img.naturalHeight - sh) / 2;
   }
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
+
+  // Dark gradient over the bottom third
+  const gradStart = size * 0.42;
+  const grad = ctx.createLinearGradient(0, gradStart, 0, size);
+  grad.addColorStop(0,   'rgba(0,0,0,0)');
+  grad.addColorStop(0.5, 'rgba(0,0,0,0.80)');
+  grad.addColorStop(1,   'rgba(0,0,0,0.95)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, gradStart, size, size - gradStart);
+
+  // Red accent bar — narrow strip just above task text
+  const textAreaTop = size * 0.62;
+  ctx.fillStyle = '#D91F26';
+  ctx.fillRect(60, textAreaTop - 16, 72, 8);
+
+  // Task text — white Bebas Neue
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `96px "Bebas Neue", sans-serif`;
+  ctx.textBaseline = 'top';
+  wrapText(ctx, taskText, 60, textAreaTop, size - 120, 100);
+
+  // Branding — bottom left, small
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = `700 26px "Inter", sans-serif`;
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('THE BOREDOM BUTTON', 60, size - 52);
+
+  // Red dot — bottom right
+  ctx.fillStyle = '#D91F26';
+  ctx.beginPath();
+  ctx.arc(size - 64, size - 64, 14, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ── Text wrap helper ──────────────────────────────────────────────────────────
+// Returns the Y position after the last line drawn.
+// maxLines: optional — truncates with '…' if exceeded.
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 0) {
+  if (!text) return y;
+  const words = text.split(' ');
+  let line = '';
+  let lineCount = 0;
+
+  for (let i = 0; i < words.length; i++) {
+    const test = line ? `${line} ${words[i]}` : words[i];
+    if (ctx.measureText(test).width > maxWidth && line !== '') {
+      if (maxLines && lineCount === maxLines - 1) {
+        // Last allowed line — add ellipsis if there are more words
+        let truncated = line;
+        while (ctx.measureText(truncated + '…').width > maxWidth && truncated.length > 0) {
+          truncated = truncated.slice(0, -1).trimEnd();
+        }
+        ctx.fillText(truncated + '…', x, y);
+        return y + lineHeight;
+      }
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      lineCount++;
+      line = words[i];
+    } else {
+      line = test;
+    }
+  }
+  if (line) ctx.fillText(line, x, y);
+  return y + lineHeight;
+}
+
+// ── Share / download the canvas ───────────────────────────────────────────────
+
+function shareCanvas(canvas) {
+  canvas.toBlob(blob => {
+    const file = new File([blob], 'boredom-card.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file] }).catch(() => downloadBlob(blob, 'boredom-card.png'));
+    } else {
+      downloadBlob(blob, 'boredom-card.png');
+    }
+  }, 'image/png');
 }
 
 function downloadBlob(blob, filename) {

@@ -765,6 +765,32 @@ button {
   -webkit-text-fill-color: var(--grey);
 }
 
+/* Secondary action on the completion screen — only visible when note/photo exists */
+.create-card-btn {
+  margin-top: 28px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  height: 40px;
+  padding: 0 20px;
+  border: var(--border-width) solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .create-card-btn:hover {
+    background: var(--black);
+    color: var(--white);
+    -webkit-text-fill-color: var(--white);
+  }
+}
+
 /* ── Info Modal ─────────────────────────────────────────────────────────── */
 
 .modal {
