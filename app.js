@@ -117,6 +117,13 @@ const RANKS = [
   { min: 201, max: Infinity, title: 'LEGEND OF THE REAL WORLD' },
 ];
 
+// ── Keyword lists for UI detection ─────────────────────────────────────────
+
+const WRITE_KEYWORDS  = ['WRITE', 'LIST', 'DESCRIBE', 'DRAFT', 'NOTE', 'RECORD',
+                          'COMPOSE', 'JOURNAL', 'JOT', 'SKETCH'];
+const CAMERA_KEYWORDS = ['PHOTOGRAPH', 'CAPTURE', 'SHOOT', 'FILM', 'DOCUMENT',
+                          'TAKE A PHOTO', 'PICTURE', 'SNAP'];
+
 // ── State ───────────────────────────────────────────────────────────────────
 
 let tasks          = [];
@@ -126,6 +133,11 @@ let currentTask    = null;
 let timerInterval  = null;
 let secondsLeft    = 0;
 let overlayShown   = false;  // prevent double-triggering
+let capturedFile   = null;   // File object from camera / file picker
+let capturedObjUrl = null;   // object URL for preview (revoked on reset)
+
+// Detect once: coarse pointer = touchscreen = mobile
+const isMobileDevice = window.matchMedia('(pointer: coarse)').matches;
 
 // ── DOM refs ────────────────────────────────────────────────────────────────
 
@@ -146,6 +158,15 @@ const completionContinueBtn = document.getElementById('completionContinueBtn');
 
 const taskTextEl           = document.getElementById('taskText');
 const taskSubEl            = document.getElementById('taskSubtitle');
+const writeField           = document.getElementById('writeField');
+const notesArea            = document.getElementById('notesArea');
+const saveNotesBtn         = document.getElementById('saveNotesBtn');
+const cameraField          = document.getElementById('cameraField');
+const cameraInput          = document.getElementById('cameraInput');
+const cameraBtn            = document.getElementById('cameraBtn');
+const photoPreview         = document.getElementById('photoPreview');
+const capturedPhotoEl      = document.getElementById('capturedPhoto');
+const savePhotoBtn         = document.getElementById('savePhotoBtn');
 const timerEl              = document.getElementById('timer');
 const timerDoneOverlay     = document.getElementById('timerDoneOverlay');
 const overlayQuestionEl    = document.getElementById('overlayQuestion');
@@ -160,6 +181,7 @@ const completionStreakEl   = document.getElementById('completionStreak');
 
 document.addEventListener('DOMContentLoaded', async () => {
   initDarkMode();
+  initCamera();
   await loadTasks();
   bindEvents();
 });
@@ -173,6 +195,35 @@ async function loadTasks() {
     console.error('Could not load tasks.json:', err);
     tasks = [];
   }
+}
+
+// ── Camera / file picker setup ──────────────────────────────────────────────
+
+function initCamera() {
+  // On mobile: go straight to camera. On desktop: open file picker.
+  if (isMobileDevice) {
+    cameraInput.setAttribute('capture', 'environment');
+  }
+
+  cameraBtn.addEventListener('click', () => cameraInput.click());
+
+  cameraInput.addEventListener('change', () => {
+    const file = cameraInput.files[0];
+    if (!file) return;
+
+    // Release previous object URL to avoid memory leaks
+    if (capturedObjUrl) URL.revokeObjectURL(capturedObjUrl);
+
+    capturedFile   = file;
+    capturedObjUrl = URL.createObjectURL(file);
+
+    capturedPhotoEl.src = capturedObjUrl;
+    photoPreview.classList.remove('hidden');
+    cameraBtn.textContent = isMobileDevice ? 'RETAKE ›' : 'CHANGE PHOTO ›';
+  });
+
+  saveNotesBtn.addEventListener('click', saveNotes);
+  savePhotoBtn.addEventListener('click', savePhoto);
 }
 
 // ── Dark mode ───────────────────────────────────────────────────────────────
@@ -290,6 +341,27 @@ function renderTask(task) {
   timerEl.classList.remove('timer--done');
   timerDoneOverlay.classList.remove('active');
   timerDoneOverlay.setAttribute('aria-hidden', 'true');
+  setupTaskFields(task.task);
+}
+
+function setupTaskFields(taskText) {
+  const upper = taskText.toUpperCase();
+
+  const needsWrite  = WRITE_KEYWORDS.some(k => upper.includes(k));
+  const needsCamera = CAMERA_KEYWORDS.some(k => upper.includes(k));
+
+  // Write field
+  writeField.classList.toggle('hidden', !needsWrite);
+  notesArea.value = '';
+
+  // Camera field
+  cameraField.classList.toggle('hidden', !needsCamera);
+  cameraBtn.textContent = isMobileDevice ? 'OPEN CAMERA' : 'ATTACH PHOTO';
+  photoPreview.classList.add('hidden');
+  capturedPhotoEl.src = '';
+  cameraInput.value = '';
+  if (capturedObjUrl) { URL.revokeObjectURL(capturedObjUrl); capturedObjUrl = null; }
+  capturedFile = null;
 }
 
 function highlightText(text, highlight) {
@@ -473,6 +545,39 @@ function showScreen(incoming, outgoing) {
 
 function openModal()  { infoModal.classList.add('active');    }
 function closeModal() { infoModal.classList.remove('active'); }
+
+// ── Save to device ───────────────────────────────────────────────────────────
+
+function saveNotes() {
+  const text = notesArea.value.trim();
+  if (!text) return;
+
+  if (navigator.share) {
+    navigator.share({ text }).catch(() => {});
+  } else {
+    downloadBlob(new Blob([text], { type: 'text/plain' }), 'boredom-notes.txt');
+  }
+}
+
+function savePhoto() {
+  if (!capturedFile) return;
+
+  if (navigator.canShare && navigator.canShare({ files: [capturedFile] })) {
+    navigator.share({ files: [capturedFile] }).catch(() => {});
+  } else {
+    const url = URL.createObjectURL(capturedFile);
+    downloadBlob(capturedFile, capturedFile.name || 'boredom-photo.jpg');
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 // ── Utility ─────────────────────────────────────────────────────────────────
 
