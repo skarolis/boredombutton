@@ -487,9 +487,14 @@ button {
 
 /* ── Write field ─────────────────────────────────────────────────────────── */
 
-.write-field,
-.camera-field {
+/* Both fields hidden by default — JS adds .visible to reveal one (never both) */
+.write-field {
+  display: none;
   margin-bottom: 16px;
+}
+
+.write-field.visible {
+  display: block;
 }
 
 .field-label {
@@ -535,6 +540,11 @@ button {
 /* ── Camera field ────────────────────────────────────────────────────────── */
 
 .camera-field {
+  display: none;
+  margin-bottom: 16px;
+}
+
+.camera-field.visible {
   display: flex;
   flex-direction: column;
   align-items: flex-start;

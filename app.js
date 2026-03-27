@@ -347,21 +347,36 @@ function renderTask(task) {
 function setupTaskFields(taskText) {
   const upper = taskText.toUpperCase();
 
-  const needsWrite  = WRITE_KEYWORDS.some(k => upper.includes(k));
-  const needsCamera = CAMERA_KEYWORDS.some(k => upper.includes(k));
+  // Use word-boundary matching to avoid false positives
+  // (e.g. 'LIST' should not match 'LISTEN', 'NOTE' should not match 'NOTABLE')
+  const needsWrite  = WRITE_KEYWORDS.some(k  => matchesWord(upper, k));
+  const needsCamera = CAMERA_KEYWORDS.some(k => matchesWord(upper, k));
 
-  // Write field
-  writeField.classList.toggle('hidden', !needsWrite);
+  // Never show both — camera takes priority if a task somehow triggers both
+  const showCamera = needsCamera;
+  const showWrite  = needsWrite && !needsCamera;
+
+  writeField.classList.toggle('visible', showWrite);
   notesArea.value = '';
 
-  // Camera field
-  cameraField.classList.toggle('hidden', !needsCamera);
+  cameraField.classList.toggle('visible', showCamera);
   cameraBtn.textContent = isMobileDevice ? 'OPEN CAMERA' : 'ATTACH PHOTO';
   photoPreview.classList.add('hidden');
   capturedPhotoEl.src = '';
   cameraInput.value = '';
   if (capturedObjUrl) { URL.revokeObjectURL(capturedObjUrl); capturedObjUrl = null; }
   capturedFile = null;
+}
+
+// Match a keyword as a whole word (or exact phrase for multi-word keywords).
+// \b prevents 'LIST' matching 'LISTEN', 'NOTE' matching 'NOTABLE', etc.
+function matchesWord(text, keyword) {
+  if (keyword.includes(' ')) {
+    // Multi-word phrase — simple include is fine
+    return text.includes(keyword);
+  }
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}\\b`).test(text);
 }
 
 function highlightText(text, highlight) {
