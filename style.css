@@ -778,12 +778,9 @@ button {
   color: var(--black);
   -webkit-text-fill-color: var(--black);
   cursor: pointer;
-  display: none;
+  display: inline-flex;
   align-items: center;
   -webkit-tap-highlight-color: transparent;
-}
-.create-card-btn.visible {
-  display: inline-flex;
 }
 
 @media (hover: hover) {

@@ -127,16 +127,19 @@ const CAMERA_KEYWORDS = ['PHOTOGRAPH', 'CAPTURE', 'SHOOT', 'FILM', 'DOCUMENT',
 // ── State ───────────────────────────────────────────────────────────────────
 
 let tasks          = [];
-let selectedLoc    = null;   // 'outside' | 'inside'
-let selectedSocial = null;   // 'alone'   | 'friends'
-let currentTask    = null;
-let timerInterval  = null;
-let secondsLeft    = 0;
-let overlayShown   = false;  // prevent double-triggering
-let capturedFile    = null;   // File object from camera / file picker
-let capturedObjUrl  = null;   // object URL for preview (revoked on reset)
-let pendingCardType = null;   // 'writing' | 'photo' | null — set when entering completion screen
-let pendingTaskText = '';     // task text saved before currentTask is cleared
+let selectedLoc      = null;   // 'outside' | 'inside'
+let selectedSocial   = null;   // 'alone'   | 'friends'
+let currentTask      = null;
+let timerInterval    = null;
+let timerDuration    = 0;      // starting seconds of the current timer
+let secondsLeft      = 0;
+let overlayShown     = false;  // prevent double-triggering
+let capturedFile     = null;   // File object from camera / file picker
+let capturedObjUrl   = null;   // object URL for preview (revoked on reset)
+let pendingCardType  = 'basic'; // 'basic' | 'writing' | 'photo' — set when entering completion screen
+let pendingTaskText  = '';      // task text saved before currentTask is cleared
+let pendingTimeSpent = 0;       // seconds spent on the task
+let pendingRank      = '';      // rank title at time of completion
 
 // Detect once: coarse pointer = touchscreen = mobile
 const isMobileDevice = window.matchMedia('(pointer: coarse)').matches;
@@ -388,7 +391,8 @@ function highlightText(text, highlight) {
 
 function startTimer(minutes) {
   clearInterval(timerInterval);
-  secondsLeft = minutes * 60;
+  timerDuration = minutes * 60;
+  secondsLeft   = timerDuration;
   renderTimer();
 
   timerInterval = setInterval(() => {
@@ -457,13 +461,13 @@ function onNotThisTime() {
 
 function showCompletionScreen(total, streak, isFirstToday) {
   // Save what we need before currentTask gets cleared on navigation
-  pendingTaskText = currentTask ? currentTask.task : '';
-  const hasNote  = notesArea.value.trim().length > 0;
-  const hasPhoto = !!capturedFile;
-  pendingCardType = hasPhoto ? 'photo' : hasNote ? 'writing' : null;
-
-  // Show CREATE CARD only if the user actually produced something
-  createCardBtn.classList.toggle('visible', !!pendingCardType);
+  pendingTaskText  = currentTask ? currentTask.task : '';
+  pendingTimeSpent = timerDuration - secondsLeft;
+  pendingRank      = getRank(total);
+  const hasNote    = notesArea.value.trim().length > 0;
+  const hasPhoto   = !!capturedFile;
+  pendingCardType  = hasPhoto ? 'photo' : hasNote ? 'writing' : 'basic';
+  // SHARE button is always visible on the completion screen
 
   const phrase = pickRandom(SUCCESS_PHRASES);
   completionPhraseEl.textContent  = phrase;
@@ -508,17 +512,17 @@ function resetAndGoHome(outgoing) {
   selectedSocial  = null;
   currentTask     = null;
   overlayShown    = false;
-  pendingCardType = null;
-  pendingTaskText = '';
+  pendingCardType  = 'basic';
+  pendingTaskText  = '';
+  pendingTimeSpent = 0;
+  pendingRank      = '';
   document.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
-  createCardBtn.classList.remove('visible');
   refreshRollBtn();
   showScreen(selectionScreen, outgoing);
 }
 
 function onCreateCard() {
-  if (pendingCardType === 'photo')   generatePhotoCard();
-  if (pendingCardType === 'writing') generateWritingCard();
+  generateCard();
 }
 
 // ── Streak & stats ──────────────────────────────────────────────────────────
@@ -581,72 +585,136 @@ function closeModal() { infoModal.classList.remove('active'); }
 
 const CARD_SIZE = 1080;  // square, works for all social platforms
 
-// Called by the writing field's CREATE CARD button
-async function generateWritingCard() {
-  const note = notesArea.value.trim();
-  if (!note) return;
-  await document.fonts.ready;
-
-  const canvas = document.createElement('canvas');
-  canvas.width  = CARD_SIZE;
-  canvas.height = CARD_SIZE;
-  const ctx = canvas.getContext('2d');
-
-  drawWritingCard(ctx, CARD_SIZE, note, pendingTaskText);
-  shareCanvas(canvas);
+function formatTime(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-// Called by the photo field's CREATE CARD button
-async function generatePhotoCard() {
-  if (!capturedPhotoEl.src) return;
+async function generateCard() {
   await document.fonts.ready;
 
-  // Make sure the image element is fully loaded before drawing
-  await new Promise(resolve => {
-    if (capturedPhotoEl.complete) { resolve(); return; }
-    capturedPhotoEl.onload = resolve;
-  });
+  if (pendingCardType === 'photo') {
+    await new Promise(resolve => {
+      if (capturedPhotoEl.complete && capturedPhotoEl.naturalWidth) { resolve(); return; }
+      capturedPhotoEl.onload = resolve;
+    });
+  }
 
   const canvas = document.createElement('canvas');
   canvas.width  = CARD_SIZE;
   canvas.height = CARD_SIZE;
   const ctx = canvas.getContext('2d');
 
-  drawPhotoCard(ctx, CARD_SIZE, pendingTaskText);
+  const timeLabel = `COMPLETED IN ${formatTime(pendingTimeSpent)}`;
+
+  if (pendingCardType === 'photo') {
+    drawPhotoCard(ctx, CARD_SIZE, pendingTaskText, pendingRank, timeLabel);
+  } else if (pendingCardType === 'writing') {
+    drawWritingCard(ctx, CARD_SIZE, pendingTaskText, notesArea.value.trim(), pendingRank, timeLabel);
+  } else {
+    drawBasicCard(ctx, CARD_SIZE, pendingTaskText, pendingRank, timeLabel);
+  }
+
   shareCanvas(canvas);
 }
 
 // ── Card renderers ────────────────────────────────────────────────────────────
 
-function drawWritingCard(ctx, size, note, taskText) {
+// Shared: draws the rank + time strip at the bottom of white cards
+function drawInfoStripLight(ctx, size, pad, rank, timeLabel) {
+  const stripY = size - pad - 20;
+
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(pad, stripY - 36);
+  ctx.lineTo(size - pad, stripY - 36);
+  ctx.stroke();
+
+  ctx.font = '700 30px "Inter", sans-serif';
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#111111';
+  ctx.fillText(rank, pad, stripY);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#D91F26';
+  ctx.fillText(timeLabel, size - pad, stripY);
+
+  ctx.textAlign = 'left';
+}
+
+// Shared: draws the rank + time strip at the bottom of photo cards
+function drawInfoStripDark(ctx, size, pad, rank, timeLabel) {
+  const stripY = size - pad - 20;
+
+  ctx.font = '700 30px "Inter", sans-serif';
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText(rank, pad, stripY);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#D91F26';
+  ctx.fillText(timeLabel, size - pad, stripY);
+
+  ctx.textAlign = 'left';
+}
+
+// Basic card — every task, no user content
+function drawBasicCard(ctx, size, taskText, rank, timeLabel) {
   const pad = 72;
 
-  // White background
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, size, size);
 
-  // Chunky black border (matches the app's aesthetic)
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 14;
   ctx.strokeRect(7, 7, size - 14, size - 14);
 
-  // Branding
   ctx.fillStyle = '#888888';
-  ctx.font = `700 28px "Inter", sans-serif`;
+  ctx.font = '700 28px "Inter", sans-serif';
   ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
   ctx.fillText('ACTIVATE', pad, pad);
 
-  // Red accent line under branding
   ctx.fillStyle = '#D91F26';
   ctx.fillRect(pad, pad + 44, 72, 8);
 
-  // Task text — Bebas Neue, large, black
   ctx.fillStyle = '#000000';
-  ctx.font = `88px "Bebas Neue", sans-serif`;
+  ctx.font = '88px "Bebas Neue", sans-serif';
   ctx.textBaseline = 'top';
-  let y = wrapText(ctx, taskText, pad, pad + 88, size - pad * 2, 92);
+  wrapText(ctx, taskText, pad, pad + 88, size - pad * 2, 96);
 
-  // Separator
+  drawInfoStripLight(ctx, size, pad, rank, timeLabel);
+}
+
+// Writing card — task with user's note
+function drawWritingCard(ctx, size, taskText, note, rank, timeLabel) {
+  const pad = 72;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 14;
+  ctx.strokeRect(7, 7, size - 14, size - 14);
+
+  ctx.fillStyle = '#888888';
+  ctx.font = '700 28px "Inter", sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  ctx.fillText('ACTIVATE', pad, pad);
+
+  ctx.fillStyle = '#D91F26';
+  ctx.fillRect(pad, pad + 44, 72, 8);
+
+  ctx.fillStyle = '#000000';
+  ctx.font = '88px "Bebas Neue", sans-serif';
+  ctx.textBaseline = 'top';
+  let y = wrapText(ctx, taskText, pad, pad + 88, size - pad * 2, 96);
+
   y += 28;
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 4;
@@ -654,63 +722,56 @@ function drawWritingCard(ctx, size, note, taskText) {
   ctx.moveTo(pad, y);
   ctx.lineTo(size - pad, y);
   ctx.stroke();
-  y += 36;
+  y += 40;
 
-  // User's note — Inter, smaller, dark grey
   ctx.fillStyle = '#222222';
-  ctx.font = `400 40px "Inter", sans-serif`;
+  ctx.font = '400 40px "Inter", sans-serif';
   ctx.textBaseline = 'top';
-  wrapText(ctx, note, pad, y, size - pad * 2, 52, 8); // max 8 lines
+  wrapText(ctx, note, pad, y, size - pad * 2, 54, 6);
+
+  drawInfoStripLight(ctx, size, pad, rank, timeLabel);
 }
 
-function drawPhotoCard(ctx, size, taskText) {
-  // Cover-crop the photo to fill the square canvas
+// Photo card — task over the user's photo
+function drawPhotoCard(ctx, size, taskText, rank, timeLabel) {
   const img = capturedPhotoEl;
   const imgAR = img.naturalWidth / img.naturalHeight;
 
   let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
   if (imgAR > 1) {
-    // Landscape — crop sides
     sw = sh;
     sx = (img.naturalWidth - sw) / 2;
   } else {
-    // Portrait — crop top/bottom
     sh = sw;
     sy = (img.naturalHeight - sh) / 2;
   }
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, size, size);
 
-  // Dark gradient over the bottom third
-  const gradStart = size * 0.42;
+  const gradStart = size * 0.40;
   const grad = ctx.createLinearGradient(0, gradStart, 0, size);
   grad.addColorStop(0,   'rgba(0,0,0,0)');
-  grad.addColorStop(0.5, 'rgba(0,0,0,0.80)');
-  grad.addColorStop(1,   'rgba(0,0,0,0.95)');
+  grad.addColorStop(0.5, 'rgba(0,0,0,0.82)');
+  grad.addColorStop(1,   'rgba(0,0,0,0.96)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, gradStart, size, size - gradStart);
 
-  // Red accent bar — narrow strip just above task text
-  const textAreaTop = size * 0.62;
+  const textAreaTop = size * 0.58;
   ctx.fillStyle = '#D91F26';
-  ctx.fillRect(60, textAreaTop - 16, 72, 8);
+  ctx.fillRect(60, textAreaTop - 20, 72, 8);
 
-  // Task text — white Bebas Neue
   ctx.fillStyle = '#ffffff';
-  ctx.font = `96px "Bebas Neue", sans-serif`;
+  ctx.font = '96px "Bebas Neue", sans-serif';
   ctx.textBaseline = 'top';
-  wrapText(ctx, taskText, 60, textAreaTop, size - 120, 100);
+  ctx.textAlign = 'left';
+  wrapText(ctx, taskText, 60, textAreaTop, size - 120, 102, 3);
 
-  // Branding — bottom left, small
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.font = `700 26px "Inter", sans-serif`;
+  // ACTIVATE branding — small, bottom left
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.font = '600 24px "Inter", sans-serif';
   ctx.textBaseline = 'bottom';
-  ctx.fillText('ACTIVATE', 60, size - 52);
+  ctx.fillText('ACTIVATE', 60, size - 28);
 
-  // Red dot — bottom right
-  ctx.fillStyle = '#D91F26';
-  ctx.beginPath();
-  ctx.arc(size - 64, size - 64, 14, 0, Math.PI * 2);
-  ctx.fill();
+  drawInfoStripDark(ctx, size, 60, rank, timeLabel);
 }
 
 // ── Text wrap helper ──────────────────────────────────────────────────────────
