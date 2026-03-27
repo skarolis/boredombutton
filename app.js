@@ -463,7 +463,7 @@ function showCompletionScreen(total, streak, isFirstToday) {
   pendingCardType = hasPhoto ? 'photo' : hasNote ? 'writing' : null;
 
   // Show CREATE CARD only if the user actually produced something
-  createCardBtn.classList.toggle('hidden', !pendingCardType);
+  createCardBtn.classList.toggle('visible', !!pendingCardType);
 
   const phrase = pickRandom(SUCCESS_PHRASES);
   completionPhraseEl.textContent  = phrase;
@@ -511,7 +511,7 @@ function resetAndGoHome(outgoing) {
   pendingCardType = null;
   pendingTaskText = '';
   document.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
-  createCardBtn.classList.add('hidden');
+  createCardBtn.classList.remove('visible');
   refreshRollBtn();
   showScreen(selectionScreen, outgoing);
 }
@@ -634,7 +634,7 @@ function drawWritingCard(ctx, size, note, taskText) {
   ctx.fillStyle = '#888888';
   ctx.font = `700 28px "Inter", sans-serif`;
   ctx.textBaseline = 'top';
-  ctx.fillText('THE BOREDOM BUTTON', pad, pad);
+  ctx.fillText('ACTIVATE', pad, pad);
 
   // Red accent line under branding
   ctx.fillStyle = '#D91F26';
@@ -704,7 +704,7 @@ function drawPhotoCard(ctx, size, taskText) {
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
   ctx.font = `700 26px "Inter", sans-serif`;
   ctx.textBaseline = 'bottom';
-  ctx.fillText('THE BOREDOM BUTTON', 60, size - 52);
+  ctx.fillText('ACTIVATE', 60, size - 52);
 
   // Red dot — bottom right
   ctx.fillStyle = '#D91F26';
@@ -751,11 +751,11 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 0) {
 
 function shareCanvas(canvas) {
   canvas.toBlob(blob => {
-    const file = new File([blob], 'boredom-card.png', { type: 'image/png' });
+    const file = new File([blob], 'activate-card.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file] }).catch(() => downloadBlob(blob, 'boredom-card.png'));
+      navigator.share({ files: [file] }).catch(() => downloadBlob(blob, 'activate-card.png'));
     } else {
-      downloadBlob(blob, 'boredom-card.png');
+      downloadBlob(blob, 'activate-card.png');
     }
   }, 'image/png');
 }
