@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- viewport-fit=cover is required for iOS safe area inset support -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21,7 +20,20 @@
 
     <header class="header">
       <span class="logo">THE BOREDOM BUTTON</span>
-      <button id="infoBtn" class="info-btn" aria-label="What is this?">?</button>
+      <div class="header-actions">
+        <button id="darkToggle" class="icon-btn" aria-label="Toggle dark mode">
+          <!-- Moon: visible in light mode -->
+          <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
+          </svg>
+          <!-- Sun: visible in dark mode -->
+          <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" fill="currentColor"/>
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button id="infoBtn" class="info-btn" aria-label="What is this?">?</button>
+      </div>
     </header>
 
     <main class="selection-main">
@@ -99,6 +111,22 @@
 
 
   <!-- ═══════════════════════════════════════════════
+       LOADING SCREEN
+  ════════════════════════════════════════════════ -->
+  <div id="loadingScreen" class="screen">
+
+    <header class="header">
+      <span class="logo">THE BOREDOM BUTTON</span>
+    </header>
+
+    <main class="loading-main">
+      <p id="loadingPhrase" class="loading-phrase"></p>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════
        TASK SCREEN
   ════════════════════════════════════════════════ -->
   <div id="taskScreen" class="screen">
@@ -113,25 +141,6 @@
         <p class="directive-label">CURRENT DIRECTIVE</p>
         <h1 id="taskText" class="task-text"></h1>
         <p id="taskSubtitle" class="task-subtitle"></p>
-
-        <!-- Write field — shown only for writing tasks -->
-        <div id="writeArea" class="extra-area extra-area--hidden">
-          <label class="extra-label" for="writeField">YOUR NOTES</label>
-          <textarea id="writeField" class="write-field" placeholder="Start writing..."></textarea>
-        </div>
-
-        <!-- Camera area — shown only for photography tasks -->
-        <div id="cameraArea" class="extra-area extra-area--hidden">
-          <!-- Hidden file input — triggered by the button below -->
-          <input type="file" id="cameraInput" accept="image/*" class="camera-input" aria-label="Take or attach photo">
-          <button id="cameraBtn" class="camera-btn">OPEN CAMERA</button>
-          <!-- Photo preview — shown after capture -->
-          <div id="photoPreview" class="photo-preview extra-area--hidden">
-            <img id="photoImg" alt="Your captured photo">
-            <button id="removePhotoBtn" class="remove-photo-btn">REMOVE PHOTO</button>
-          </div>
-        </div>
-
         <div class="timer-wrapper">
           <div id="timer" class="timer">00:00</div>
         </div>
@@ -142,8 +151,45 @@
       </div>
     </main>
 
+    <!-- DID YOU DO IT overlay -->
+    <div id="timerDoneOverlay" class="overlay" aria-hidden="true">
+      <div class="overlay-content">
+        <p id="overlayQuestion" class="overlay-question"></p>
+        <div class="overlay-buttons">
+          <button id="yesBtn" class="overlay-btn overlay-btn--yes">YES</button>
+          <button id="notThisTimeBtn" class="overlay-btn overlay-btn--no">NOT THIS TIME</button>
+        </div>
+      </div>
+    </div>
+
     <footer class="footer footer--task">
       <button id="doneBtn" class="done-btn">DONE ›</button>
+    </footer>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════
+       COMPLETION SCREEN
+  ════════════════════════════════════════════════ -->
+  <div id="completionScreen" class="screen">
+
+    <header class="header">
+      <span class="logo">THE BOREDOM BUTTON</span>
+    </header>
+
+    <main class="completion-main">
+      <div id="completionContainer" class="completion-container">
+        <p id="completionPhrase" class="completion-phrase"></p>
+        <div class="completion-divider"></div>
+        <p id="completionCount" class="completion-count"></p>
+        <p id="completionRank" class="completion-rank"></p>
+        <p id="completionStreak" class="completion-streak"></p>
+      </div>
+    </main>
+
+    <footer class="footer footer--task">
+      <button id="completionContinueBtn" class="done-btn">BACK TO BASE ›</button>
     </footer>
 
   </div>

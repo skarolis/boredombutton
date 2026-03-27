@@ -14,12 +14,32 @@
 /* ── Design tokens ──────────────────────────────────────────────────────── */
 
 :root {
-  --red:          #D91F26;
-  --black:        #000000;
-  --white:        #ffffff;
-  --grey:         #555555;
-  --border-width: 4px;           /* tile / header border thickness — chunky */
+  --red:           #D91F26;
+  --black:         #000000;
+  --white:         #ffffff;
+  --grey:          #555555;
+  --border-width:  4px;
+  /* tokens used in a few hardcoded spots — updated by dark mode */
+  --bg-desktop:    #e8e8e8;
+  --tile-hover:    #f0f0f0;
+  --modal-overlay: rgba(0, 0, 0, 0.6);
 }
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+
+html.dark {
+  --black:         #ebebeb;  /* inverted: used for text, borders */
+  --white:         #0d0d0d;  /* inverted: used for backgrounds   */
+  --grey:          #888888;
+  --bg-desktop:    #1a1a1a;
+  --tile-hover:    #181818;
+  --modal-overlay: rgba(0, 0, 0, 0.82);
+}
+
+/* Dark / light icon swap */
+.icon-sun  { display: none; }
+html.dark .icon-moon { display: none; }
+html.dark .icon-sun  { display: block; }
 
 /* ── Base ───────────────────────────────────────────────────────────────── */
 
@@ -32,7 +52,6 @@ html {
 
 body {
   overflow: hidden;
-  /* Explicit black on body prevents any inherited blue on iOS */
   color: var(--black);
   -webkit-text-fill-color: var(--black);
 }
@@ -42,7 +61,6 @@ button {
   cursor: pointer;
   border: none;
   background: none;
-  /* Prevent iOS blue tint on buttons */
   color: var(--black);
   -webkit-text-fill-color: var(--black);
   -webkit-tap-highlight-color: transparent;
@@ -55,9 +73,6 @@ button {
 .screen {
   display: none;
   flex-direction: column;
-  /* svh = "small viewport height" — the viewport when browser chrome is fully visible.
-     This is the safest value for iOS Safari: nothing ever gets hidden behind the address bar.
-     Falls back to 100vh for browsers that don't support svh. */
   height: 100vh;
   height: 100svh;
   width: 100%;
@@ -76,7 +91,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* env() used directly — more reliable than CSS custom properties on iOS */
   padding: env(safe-area-inset-top, 0px) 20px 0;
   height: calc(44px + env(safe-area-inset-top, 0px));
   border-bottom: var(--border-width) solid var(--black);
@@ -95,22 +109,36 @@ button {
   -webkit-text-fill-color: var(--black);
 }
 
+/* Header right cluster */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Shared style for icon-btn (dark toggle) and info-btn */
+.icon-btn,
 .info-btn {
   width: 26px;
   height: 26px;
   border: var(--border-width) solid var(--black);
   border-radius: 50%;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--black);
-  -webkit-text-fill-color: var(--black);
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
+  flex-shrink: 0;
 }
 
+.info-btn {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.icon-btn:hover,
 .info-btn:hover {
   background: var(--black);
   color: var(--white);
@@ -134,14 +162,11 @@ button {
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
-  /* Padding wraps the tile area so cards sit inside with breathing room */
-  padding: 0 14px 14px;
-  gap: 10px;
 }
 
 /* Headline block */
 .headline-block {
-  padding: 16px 6px 4px;
+  padding: 16px 20px 12px;
   flex-shrink: 0;
 }
 
@@ -177,7 +202,7 @@ button {
   display: flex;
   flex: 1;
   min-height: 0;
-  gap: 10px;  /* gap between the two cards in each row */
+  border-top: var(--border-width) solid var(--black);
 }
 
 /* ── Tile ───────────────────────────────────────────────────────────────── */
@@ -190,8 +215,8 @@ button {
   justify-content: center;
   gap: 10px;
   padding: 16px 8px;
-  /* Each tile has its own full border — chunky individual cards */
-  border: var(--border-width) solid var(--black);
+  border: none;
+  border-right: var(--border-width) solid var(--black);
   background: var(--white);
   color: var(--black);
   -webkit-text-fill-color: var(--black);
@@ -202,9 +227,13 @@ button {
   text-decoration: none;
 }
 
+.tile:last-child {
+  border-right: none;
+}
+
 .tile-icon {
   color: var(--black);
-  -webkit-text-fill-color: initial; /* SVG uses fill, not text-fill-color */
+  -webkit-text-fill-color: initial;
   line-height: 0;
 }
 
@@ -250,14 +279,14 @@ button {
 }
 
 .tile.selected .tile-sublabel {
-  color: rgba(255, 255, 255, 0.6);
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.5);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Hover (desktop only) */
 @media (hover: hover) {
   .tile:not(.selected):hover {
-    background: #f0f0f0;
+    background: var(--tile-hover);
   }
 }
 
@@ -267,8 +296,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* env() used directly — padding-bottom keeps the button above the iOS home bar.
-     The extra 8px gives a comfortable buffer above the system UI. */
   padding: 0 16px;
   padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
   min-height: 56px;
@@ -321,6 +348,33 @@ button {
     background: #b8181e;
     border-color: #b8181e;
   }
+}
+
+/* ── Loading screen ─────────────────────────────────────────────────────── */
+
+.loading-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 32px;
+}
+
+.loading-phrase {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--grey);
+  -webkit-text-fill-color: var(--grey);
+  text-align: center;
+  animation: pulseFade 1.1s ease-in-out infinite;
+}
+
+@keyframes pulseFade {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 1;   }
 }
 
 /* ── Task screen ────────────────────────────────────────────────────────── */
@@ -393,11 +447,18 @@ button {
   letter-spacing: 0.02em;
   color: var(--black);
   -webkit-text-fill-color: var(--black);
+  transition: color 0.3s ease;
 }
 
 .timer--done {
   color: var(--red);
   -webkit-text-fill-color: var(--red);
+  animation: timerPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.5; }
 }
 
 .signal-active {
@@ -419,112 +480,6 @@ button {
   border-radius: 50%;
   background: var(--red);
   flex-shrink: 0;
-}
-
-/* ── Write field & camera ───────────────────────────────────────────────── */
-
-.extra-area--hidden {
-  display: none !important;
-}
-
-.extra-area {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.extra-label {
-  font-family: 'Inter', sans-serif;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--grey);
-  -webkit-text-fill-color: var(--grey);
-}
-
-.write-field {
-  width: 100%;
-  min-height: 88px;
-  padding: 12px;
-  border: var(--border-width) solid var(--black);
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  line-height: 1.65;
-  color: var(--black);
-  -webkit-text-fill-color: var(--black);
-  background: var(--white);
-  resize: vertical;
-  /* Remove default iOS styling */
-  -webkit-appearance: none;
-  appearance: none;
-  border-radius: 0;
-  outline: none;
-}
-
-.write-field::placeholder {
-  color: #aaa;
-  -webkit-text-fill-color: #aaa;
-}
-
-.write-field:focus {
-  outline: none;
-  border-color: var(--black);
-  box-shadow: 2px 2px 0 var(--black);
-}
-
-/* Hidden file input — triggered programmatically */
-.camera-input {
-  display: none;
-}
-
-.camera-btn {
-  width: 100%;
-  height: 42px;
-  border: var(--border-width) solid var(--black);
-  background: var(--white);
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 17px;
-  letter-spacing: 0.08em;
-  color: var(--black);
-  -webkit-text-fill-color: var(--black);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-@media (hover: hover) {
-  .camera-btn:hover {
-    background: #f0f0f0;
-  }
-}
-
-.photo-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.photo-preview img {
-  width: 100%;
-  max-height: 180px;
-  object-fit: cover;
-  border: var(--border-width) solid var(--black);
-  display: block;
-}
-
-.remove-photo-btn {
-  font-family: 'Inter', sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--grey);
-  -webkit-text-fill-color: var(--grey);
-  text-decoration: underline;
-  text-align: left;
-  -webkit-tap-highlight-color: transparent;
 }
 
 /* ── Done button ────────────────────────────────────────────────────────── */
@@ -552,13 +507,161 @@ button {
   }
 }
 
+/* ── Did You Do It overlay ──────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 24px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+}
+
+.overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.overlay-content {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.overlay-question {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(44px, 12vw, 64px);
+  line-height: 0.95;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
+  text-align: center;
+  margin-bottom: 12px;
+  white-space: pre-line;
+}
+
+.overlay-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overlay-btn {
+  height: 52px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  border: var(--border-width) solid var(--black);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.overlay-btn--yes {
+  background: var(--black);
+  color: var(--white);
+  -webkit-text-fill-color: var(--white);
+}
+
+.overlay-btn--no {
+  background: var(--white);
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
+}
+
+@media (hover: hover) {
+  .overlay-btn--yes:hover  { opacity: 0.85; }
+  .overlay-btn--no:hover   { background: var(--tile-hover); }
+}
+
+/* ── Completion screen ──────────────────────────────────────────────────── */
+
+.completion-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 24px 20px;
+  overflow: hidden;
+}
+
+.completion-container {
+  width: 100%;
+  max-width: 480px;
+  /* Initial state — animated in by JS adding .is-animating */
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.completion-container.is-animating {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.completion-phrase {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(44px, 13vw, 72px);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
+  margin-bottom: 20px;
+}
+
+.completion-divider {
+  width: 48px;
+  height: var(--border-width);
+  background: var(--red);
+  margin-bottom: 20px;
+}
+
+.completion-count {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(32px, 9vw, 52px);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
+  margin-bottom: 8px;
+}
+
+.completion-rank {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--red);
+  -webkit-text-fill-color: var(--red);
+  margin-bottom: 12px;
+}
+
+.completion-streak {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--grey);
+  -webkit-text-fill-color: var(--grey);
+}
+
 /* ── Info Modal ─────────────────────────────────────────────────────────── */
 
 .modal {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--modal-overlay);
   z-index: 100;
   align-items: center;
   justify-content: center;
@@ -607,12 +710,10 @@ button {
 @media (min-width: 768px) {
 
   body {
-    background: #e8e8e8;
+    background: var(--bg-desktop);
   }
 
   .screen {
-    /* Keep position:fixed — just constrain width and centre horizontally.
-       left + transform is the only reliable cross-browser way to centre a fixed element. */
     width: 560px;
     left: 50%;
     right: auto;
@@ -639,7 +740,6 @@ button {
   .tile {
     gap: 14px;
     padding: 28px 16px;
-    border: var(--border-width) solid var(--black);
   }
 
   .tile-icon svg {
@@ -695,6 +795,27 @@ button {
     height: 48px;
     padding: 0 48px;
   }
+
+  .completion-main {
+    padding: 32px 40px;
+  }
+
+  .completion-phrase {
+    font-size: 76px;
+  }
+
+  .completion-count {
+    font-size: 52px;
+  }
+
+  .overlay-question {
+    font-size: 64px;
+  }
+
+  .overlay-btn {
+    height: 56px;
+    font-size: 22px;
+  }
 }
 
 /* ── Focus styles (accessibility) ───────────────────────────────────────── */
@@ -707,7 +828,14 @@ button {
 /* ── Reduced motion ─────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-  .tile {
+  .tile,
+  .overlay,
+  .completion-container {
     transition: none;
+  }
+  .loading-phrase,
+  .timer--done {
+    animation: none;
+    opacity: 1;
   }
 }
