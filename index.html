@@ -2,124 +2,140 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- viewport-fit=cover is required for iOS safe area inset support -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>The Boredom Button</title>
-
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- SELECTION SCREEN -->
+
+  <!-- ═══════════════════════════════════════════════
+       SELECTION SCREEN
+  ════════════════════════════════════════════════ -->
   <div id="selectionScreen" class="screen screen--visible">
-    <!-- Header -->
+
     <header class="header">
       <span class="logo">THE BOREDOM BUTTON</span>
-      <button id="infoBtn" class="info-btn" aria-label="Information">?</button>
+      <button id="infoBtn" class="info-btn" aria-label="What is this?">?</button>
     </header>
 
-    <!-- Main content -->
     <main class="selection-main">
-      <div class="headline">
-        <span>SELECT</span>
-        <span>YOUR</span>
-        <span class="headline--red">SIGNAL</span>
-      </div>
-      <p class="tagline">CHOOSE A PARAMETER. KILL THE BOREDOM.</p>
 
-      <!-- Location grid (first row) -->
+      <div class="headline-block">
+        <div class="headline">
+          <span>SELECT</span>
+          <span>YOUR</span>
+          <span class="headline--red">SIGNAL</span>
+        </div>
+        <p class="tagline">CHOOSE A PARAMETER. KILL THE BOREDOM.</p>
+      </div>
+
+      <!-- Row 1: Location -->
       <div class="tile-group" data-group="location">
         <button class="tile" data-value="outside" aria-label="Outside">
-          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="22,3 8,20 15,20 6,37 19,37 19,41 25,41 25,37 38,37 29,20 36,20" fill="currentColor"/>
-          </svg>
+          <div class="tile-icon">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <polygon points="22,3 8,20 15,20 6,37 19,37 19,41 25,41 25,37 38,37 29,20 36,20" fill="currentColor"/>
+            </svg>
+          </div>
           <span class="tile-label">OUTSIDE</span>
           <span class="tile-sublabel">THE GREAT UNKNOWN</span>
         </button>
         <button class="tile" data-value="inside" aria-label="Inside">
-          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="22,4 2,22 9,22 9,40 18,40 18,28 26,28 26,40 35,40 35,22 42,22" fill="currentColor"/>
-          </svg>
+          <div class="tile-icon">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <polygon points="22,4 2,22 9,22 9,40 18,40 18,28 26,28 26,40 35,40 35,22 42,22" fill="currentColor"/>
+            </svg>
+          </div>
           <span class="tile-label">INSIDE</span>
           <span class="tile-sublabel">CONTROLLED ENVIRONMENT</span>
         </button>
       </div>
 
-      <!-- Social grid (second row) -->
+      <!-- Row 2: Social -->
       <div class="tile-group" data-group="social">
         <button class="tile" data-value="alone" aria-label="Alone">
-          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="22" cy="13" r="8" fill="currentColor"/>
-            <path d="M6 42C6 31.5 13.2 23 22 23C30.8 23 38 31.5 38 42H6Z" fill="currentColor"/>
-          </svg>
+          <div class="tile-icon">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="22" cy="13" r="8" fill="currentColor"/>
+              <path d="M6 42C6 31.5 13.2 23 22 23C30.8 23 38 31.5 38 42H6Z" fill="currentColor"/>
+            </svg>
+          </div>
           <span class="tile-label">ALONE</span>
           <span class="tile-sublabel">SOLITARY MISSION</span>
         </button>
         <button class="tile" data-value="friends" aria-label="With Friends">
-          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="16" cy="13" r="7" fill="currentColor"/>
-            <path d="M2 42C2 32.6 8.5 25 16 25C23.5 25 30 32.6 30 42H2Z" fill="currentColor"/>
-            <circle cx="31" cy="12" r="6" fill="currentColor"/>
-            <path d="M24 42C24 34.8 28 28.8 33.5 26.2C32.7 26.1 31.9 26 31 26C38.5 26 45 33.6 45 42H24Z" fill="currentColor"/>
-          </svg>
+          <div class="tile-icon">
+            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="16" cy="13" r="7" fill="currentColor"/>
+              <path d="M2 42C2 32.6 8.5 25 16 25C23.5 25 30 32.6 30 42H2Z" fill="currentColor"/>
+              <circle cx="31" cy="12" r="6" fill="currentColor"/>
+              <path d="M24 42C24 34.8 28 28.8 33.5 26.2C32.7 26.1 31.9 26 31 26C38.5 26 45 33.6 45 42H24Z" fill="currentColor"/>
+            </svg>
+          </div>
           <span class="tile-label">WITH FRIENDS</span>
           <span class="tile-sublabel">SQUAD ENGAGEMENT</span>
         </button>
       </div>
+
     </main>
 
-    <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer footer--selection">
       <div class="footer-text">
         <span>NO REGRETS.</span>
         <span>JUST ACTION.</span>
       </div>
-      <button id="rollBtn" class="roll-btn" disabled>
+      <button id="rollBtn" class="roll-btn" disabled aria-disabled="true">
         ROLL THE DICE
       </button>
     </footer>
+
   </div>
 
-  <!-- TASK SCREEN -->
+
+  <!-- ═══════════════════════════════════════════════
+       TASK SCREEN
+  ════════════════════════════════════════════════ -->
   <div id="taskScreen" class="screen">
-    <!-- Header -->
-    <header class="header header--task">
+
+    <header class="header">
       <span class="logo">THE BOREDOM BUTTON</span>
-      <div class="signal-dot"></div>
+      <span class="signal-dot-header" aria-hidden="true"></span>
     </header>
 
-    <!-- Main content -->
     <main class="task-main">
       <div class="task-container">
         <p class="directive-label">CURRENT DIRECTIVE</p>
-
         <h1 id="taskText" class="task-text"></h1>
         <p id="taskSubtitle" class="task-subtitle"></p>
-
         <div class="timer-wrapper">
           <div id="timer" class="timer">00:00</div>
         </div>
-
         <p class="signal-active">
-          <span class="signal-dot-inline"></span>
+          <span class="signal-dot-inline" aria-hidden="true"></span>
           SIGNAL ACTIVE
         </p>
       </div>
     </main>
 
-    <!-- Footer -->
     <footer class="footer footer--task">
       <button id="doneBtn" class="done-btn">DONE ›</button>
     </footer>
+
   </div>
 
-  <!-- INFO MODAL -->
-  <div id="infoModal" class="modal">
+
+  <!-- ═══════════════════════════════════════════════
+       INFO MODAL
+  ════════════════════════════════════════════════ -->
+  <div id="infoModal" class="modal" role="dialog" aria-modal="true" aria-label="About The Boredom Button">
     <div class="modal-content">
-      <p>One micro-adventure. Use only what you have on you. No options, no browsing. Just go.</p>
+      <p class="modal-text">One micro-adventure. Use only what you have on you. No options, no browsing. Just go.</p>
       <button id="closeModalBtn" class="modal-close">CLOSE</button>
     </div>
   </div>

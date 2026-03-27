@@ -1,307 +1,206 @@
 /**
- * The Boredom Button
- * A minimalist site for micro-adventures
+ * The Boredom Button — app.js
+ * One micro-adventure. No options. Just go.
  */
 
-// ============================================================================
-// STATE
-// ============================================================================
+// ── State ──────────────────────────────────────────────────────────────────
 
-let tasks = [];
-let selectedLocation = null;
-let selectedSocial = null;
-let currentTask = null;
-let timerInterval = null;
-let secondsLeft = 0;
+let tasks          = [];
+let selectedLoc    = null;   // 'outside' | 'inside'
+let selectedSocial = null;   // 'alone'   | 'friends'
+let currentTask    = null;
+let timerInterval  = null;
+let secondsLeft    = 0;
 
-// ============================================================================
-// DOM ELEMENTS
-// ============================================================================
+// ── DOM refs ───────────────────────────────────────────────────────────────
 
 const selectionScreen = document.getElementById('selectionScreen');
-const taskScreen = document.getElementById('taskScreen');
-const infoModal = document.getElementById('infoModal');
+const taskScreen      = document.getElementById('taskScreen');
+const infoModal       = document.getElementById('infoModal');
 
-const tiles = document.querySelectorAll('.tile');
-const rollBtn = document.getElementById('rollBtn');
-const doneBtn = document.getElementById('doneBtn');
-const infoBtn = document.getElementById('infoBtn');
+const rollBtn       = document.getElementById('rollBtn');
+const doneBtn       = document.getElementById('doneBtn');
+const infoBtn       = document.getElementById('infoBtn');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
-const taskText = document.getElementById('taskText');
-const taskSubtitle = document.getElementById('taskSubtitle');
-const timer = document.getElementById('timer');
+const taskTextEl    = document.getElementById('taskText');
+const taskSubEl     = document.getElementById('taskSubtitle');
+const timerEl       = document.getElementById('timer');
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
+// ── Boot ───────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadTasks();
-  attachEventListeners();
+  bindEvents();
 });
 
 async function loadTasks() {
   try {
-    const response = await fetch('tasks.json');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    tasks = await response.json();
-  } catch (error) {
-    console.error('Failed to load tasks:', error);
-    // Fallback: create minimal task for demonstration
+    const res = await fetch('tasks.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    tasks = await res.json();
+  } catch (err) {
+    console.error('Could not load tasks.json:', err);
     tasks = [];
   }
 }
 
-function attachEventListeners() {
-  // Tile selection
-  tiles.forEach((tile) => {
-    tile.addEventListener('click', handleTileClick);
+// ── Events ─────────────────────────────────────────────────────────────────
+
+function bindEvents() {
+  // Tile clicks
+  document.querySelectorAll('.tile').forEach(tile => {
+    tile.addEventListener('click', onTileClick);
   });
 
-  // Buttons
-  rollBtn.addEventListener('click', handleRoll);
-  doneBtn.addEventListener('click', handleDone);
-  infoBtn.addEventListener('click', openModal);
+  // Action buttons
+  rollBtn.addEventListener('click', onRoll);
+  doneBtn.addEventListener('click', onDone);
+
+  // Modal
+  infoBtn.addEventListener('click',       openModal);
   closeModalBtn.addEventListener('click', closeModal);
-
-  // Modal close on background click
-  infoModal.addEventListener('click', (e) => {
-    if (e.target === infoModal) {
-      closeModal();
-    }
+  infoModal.addEventListener('click', e => {
+    if (e.target === infoModal) closeModal();
   });
-
-  // Keyboard: Escape to close modal
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && infoModal.classList.contains('active')) {
-      closeModal();
-    }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && infoModal.classList.contains('active')) closeModal();
   });
 }
 
-// ============================================================================
-// TILE SELECTION
-// ============================================================================
+// ── Tile selection ─────────────────────────────────────────────────────────
 
-function handleTileClick(e) {
-  const clickedTile = e.currentTarget;
-  const group = clickedTile.closest('.tile-group');
-  const groupType = group.dataset.group;
-  const value = clickedTile.dataset.value;
+function onTileClick(e) {
+  const tile      = e.currentTarget;
+  const group     = tile.closest('.tile-group');
+  const groupType = group.dataset.group;   // 'location' | 'social'
+  const value     = tile.dataset.value;    // 'outside' | 'inside' | 'alone' | 'friends'
 
-  // Remove selected state from siblings
-  group.querySelectorAll('.tile').forEach((tile) => {
-    tile.classList.remove('selected');
-  });
+  // Deselect siblings
+  group.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
+  // Select this one
+  tile.classList.add('selected');
 
-  // Add selected state to clicked tile
-  clickedTile.classList.add('selected');
+  if (groupType === 'location') selectedLoc    = value;
+  else                          selectedSocial = value;
 
-  // Update state
-  if (groupType === 'location') {
-    selectedLocation = value;
-  } else if (groupType === 'social') {
-    selectedSocial = value;
-  }
-
-  // Check if both selections are made
-  updateRollBtnState();
+  refreshRollBtn();
 }
 
-function updateRollBtnState() {
-  if (selectedLocation && selectedSocial) {
-    rollBtn.disabled = false;
-    rollBtn.classList.add('active');
-  } else {
-    rollBtn.disabled = true;
-    rollBtn.classList.remove('active');
-  }
+function refreshRollBtn() {
+  const ready = selectedLoc && selectedSocial;
+  rollBtn.disabled = !ready;
+  rollBtn.setAttribute('aria-disabled', String(!ready));
+  rollBtn.classList.toggle('active', !!ready);
 }
 
-// ============================================================================
-// BUILD CONTEXT & GET RANDOM TASK
-// ============================================================================
+// ── Context & random task ──────────────────────────────────────────────────
 
 function buildContext() {
-  return `${selectedLocation}_${selectedSocial}`;
+  return `${selectedLoc}_${selectedSocial}`;
+  // Produces: 'outside_alone' | 'outside_friends' | 'inside_alone' | 'inside_friends'
 }
 
 function getRandomTask(context) {
-  // Filter tasks by context
-  const contextTasks = tasks.filter((task) => task.context === context);
+  const pool = tasks.filter(t => t.context === context);
+  if (!pool.length) return null;
 
-  if (contextTasks.length === 0) {
-    return null;
-  }
-
-  // Get seen IDs from localStorage
   const seenKey = `seen_${context}`;
-  const seenStr = localStorage.getItem(seenKey);
-  const seen = seenStr ? JSON.parse(seenStr) : [];
+  let seen = JSON.parse(localStorage.getItem(seenKey) || '[]');
 
-  // Filter available tasks (not yet seen)
-  const availableTasks = contextTasks.filter((task) => !seen.includes(task.id));
+  let available = pool.filter(t => !seen.includes(t.id));
 
-  // If all tasks have been seen, reset the list
-  if (availableTasks.length === 0) {
+  // Cycled through entire pool — reset and start fresh
+  if (!available.length) {
     localStorage.removeItem(seenKey);
-    return contextTasks[Math.floor(Math.random() * contextTasks.length)];
+    available = pool;
   }
 
-  // Return random available task
-  return availableTasks[Math.floor(Math.random() * availableTasks.length)];
+  return available[Math.floor(Math.random() * available.length)];
 }
 
-// ============================================================================
-// ROLL THE DICE
-// ============================================================================
+// ── Roll ───────────────────────────────────────────────────────────────────
 
-function handleRoll() {
+function onRoll() {
   const context = buildContext();
-  const task = getRandomTask(context);
-
-  if (!task) {
-    console.error('No tasks available for context:', context);
-    return;
-  }
+  const task    = getRandomTask(context);
+  if (!task) { console.warn('No tasks for context:', context); return; }
 
   currentTask = task;
-  populateTaskScreen(task);
-  switchToTaskScreen();
+  renderTask(task);
+  showScreen(taskScreen, selectionScreen);
   startTimer(task.duration);
 }
 
-function populateTaskScreen(task) {
-  // Render task text with highlight
-  const renderedText = renderTaskWithHighlight(task.task, task.highlight);
-  taskText.innerHTML = renderedText;
-
-  // Set subtitle
-  taskSubtitle.textContent = task.subtitle;
-
-  // Reset timer display
-  secondsLeft = task.duration * 60;
-  updateTimerDisplay();
+function renderTask(task) {
+  taskTextEl.innerHTML = highlightText(task.task, task.highlight);
+  taskSubEl.textContent = task.subtitle;
+  timerEl.classList.remove('timer--done');
 }
 
-function renderTaskWithHighlight(text, highlight) {
-  if (!highlight) {
-    return text;
-  }
-
-  // Escape special regex characters
-  const escaped = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${escaped})`, 'gi');
-
-  return text.replace(regex, '<span class="highlight">$1</span>');
+function highlightText(text, highlight) {
+  if (!highlight) return text;
+  const safe  = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`(${safe})`), '<span class="highlight">$1</span>');
 }
 
-// ============================================================================
-// TIMER
-// ============================================================================
+// ── Timer ──────────────────────────────────────────────────────────────────
 
-function startTimer(durationMinutes) {
-  // Clear any existing timer
-  if (timerInterval) {
-    clearInterval(timerInterval);
-  }
-
-  secondsLeft = durationMinutes * 60;
-  updateTimerDisplay();
+function startTimer(minutes) {
+  clearInterval(timerInterval);
+  secondsLeft = minutes * 60;
+  renderTimer();
 
   timerInterval = setInterval(() => {
     secondsLeft--;
-
-    if (secondsLeft < 0) {
+    if (secondsLeft <= 0) {
       secondsLeft = 0;
       clearInterval(timerInterval);
-      timer.classList.add('timer--done');
-      return;
+      timerEl.classList.add('timer--done');
     }
-
-    updateTimerDisplay();
+    renderTimer();
   }, 1000);
 }
 
-function updateTimerDisplay() {
-  const minutes = Math.floor(secondsLeft / 60);
-  const seconds = secondsLeft % 60;
-  timer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+function renderTimer() {
+  const m = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+  const s = String(secondsLeft % 60).padStart(2, '0');
+  timerEl.textContent = `${m}:${s}`;
 }
 
-// ============================================================================
-// DONE BUTTON
-// ============================================================================
+// ── Done ───────────────────────────────────────────────────────────────────
 
-function handleDone() {
-  // Clear timer
-  if (timerInterval) {
-    clearInterval(timerInterval);
-  }
+function onDone() {
+  clearInterval(timerInterval);
 
   // Mark task as seen
   if (currentTask) {
-    const context = buildContext();
-    const seenKey = `seen_${context}`;
-    const seenStr = localStorage.getItem(seenKey);
-    const seen = seenStr ? JSON.parse(seenStr) : [];
-
+    const seenKey = `seen_${buildContext()}`;
+    const seen    = JSON.parse(localStorage.getItem(seenKey) || '[]');
     if (!seen.includes(currentTask.id)) {
       seen.push(currentTask.id);
       localStorage.setItem(seenKey, JSON.stringify(seen));
     }
   }
 
-  // Reset state
-  resetSelections();
-
-  // Switch screens
-  switchToSelectionScreen();
-}
-
-function resetSelections() {
-  selectedLocation = null;
+  // Reset selection state
+  selectedLoc    = null;
   selectedSocial = null;
-  currentTask = null;
+  currentTask    = null;
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('selected'));
+  refreshRollBtn();
 
-  // Deselect all tiles
-  tiles.forEach((tile) => {
-    tile.classList.remove('selected');
-  });
-
-  // Disable roll button
-  rollBtn.disabled = true;
-  rollBtn.classList.remove('active');
-
-  // Clear timer visual state
-  timer.classList.remove('timer--done');
+  showScreen(selectionScreen, taskScreen);
 }
 
-// ============================================================================
-// SCREEN SWITCHING
-// ============================================================================
+// ── Screen switching ───────────────────────────────────────────────────────
 
-function switchToTaskScreen() {
-  selectionScreen.classList.remove('screen--visible');
-  taskScreen.classList.add('screen--visible');
+function showScreen(incoming, outgoing) {
+  outgoing.classList.remove('screen--visible');
+  incoming.classList.add('screen--visible');
 }
 
-function switchToSelectionScreen() {
-  taskScreen.classList.remove('screen--visible');
-  selectionScreen.classList.add('screen--visible');
-}
+// ── Modal ──────────────────────────────────────────────────────────────────
 
-// ============================================================================
-// MODAL
-// ============================================================================
-
-function openModal() {
-  infoModal.classList.add('active');
-}
-
-function closeModal() {
-  infoModal.classList.remove('active');
-}
+function openModal()  { infoModal.classList.add('active');    }
+function closeModal() { infoModal.classList.remove('active'); }
