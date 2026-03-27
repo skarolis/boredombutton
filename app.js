@@ -356,8 +356,8 @@ function hideOverlay() {
 function onYes() {
   hideOverlay();
   markTaskSeen();
-  const { total, streak } = recordCompletion();
-  showCompletionScreen(total, streak);
+  const { total, streak, isFirstToday } = recordCompletion();
+  showCompletionScreen(total, streak, isFirstToday);
 }
 
 // NOT THIS TIME ── mark seen, quietly return to home
@@ -369,19 +369,20 @@ function onNotThisTime() {
 
 // ── Completion screen ───────────────────────────────────────────────────────
 
-function showCompletionScreen(total, streak) {
+function showCompletionScreen(total, streak, isFirstToday) {
   const phrase = pickRandom(SUCCESS_PHRASES);
   completionPhraseEl.textContent  = phrase;
   completionCountEl.textContent   = `TASK #${total}`;
   completionRankEl.textContent    = getRank(total);
 
-  if (streak > 1) {
+  if (isFirstToday && streak > 1) {
     completionStreakEl.textContent = `${streak}-DAY STREAK`;
     completionStreakEl.style.display = '';
-  } else if (streak === 1) {
+  } else if (isFirstToday && streak === 1) {
     completionStreakEl.textContent = 'FIRST TASK OF THE DAY';
     completionStreakEl.style.display = '';
   } else {
+    // Not the first task today — streak message already shown, hide it
     completionStreakEl.style.display = 'none';
   }
 
@@ -435,6 +436,8 @@ function recordCompletion() {
   let   streak   = parseInt(localStorage.getItem('currentStreak')  || '0', 10);
   let   total    = parseInt(localStorage.getItem('totalCompleted')  || '0', 10);
 
+  const isFirstToday = lastDate !== today;
+
   if (lastDate === today) {
     // Already did something today — streak continues unchanged
   } else if (lastDate === getYesterdayString()) {
@@ -449,7 +452,7 @@ function recordCompletion() {
   localStorage.setItem('currentStreak',   String(streak));
   localStorage.setItem('totalCompleted',  String(total));
 
-  return { total, streak };
+  return { total, streak, isFirstToday };
 }
 
 // ── Rank ────────────────────────────────────────────────────────────────────
