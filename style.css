@@ -1,433 +1,468 @@
 /* ============================================================================
-   RESET & BASE STYLES
+   THE BOREDOM BUTTON — STYLES
+   Mobile-first. Bebas Neue + Inter. Black / White / #D91F26.
    ============================================================================ */
 
-* {
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* ── Design tokens ──────────────────────────────────────────────────────── */
+
+:root {
+  --red:          #D91F26;
+  --black:        #000000;
+  --white:        #ffffff;
+  --grey:         #555555;
+  --border-width: 4px;           /* tile / header border thickness — chunky */
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+
 html {
-  scroll-behavior: smooth;
+  font-family: 'Inter', sans-serif;
+  background: var(--white);
+  color: var(--black);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #ffffff;
-  color: #000000;
-  line-height: 1.6;
   overflow: hidden;
+  /* Explicit black on body prevents any inherited blue on iOS */
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
 }
 
-/* ============================================================================
-   TYPOGRAPHY & COLORS
-   ============================================================================ */
-
-:root {
-  --red: #D91F26;
-  --black: #000000;
-  --white: #ffffff;
-  --grey: #666666;
-  --border: #E0E0E0;
-  --light-grey: #f5f5f5;
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  /* Prevent iOS blue tint on buttons */
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
-/* ============================================================================
-   LAYOUT - VIEWPORT HEIGHT
-   ============================================================================ */
+/* ── Screen container ───────────────────────────────────────────────────── */
 
 .screen {
   display: none;
   flex-direction: column;
+  /* svh = "small viewport height" — the viewport when browser chrome is fully visible.
+     This is the safest value for iOS Safari: nothing ever gets hidden behind the address bar.
+     Falls back to 100vh for browsers that don't support svh. */
   height: 100vh;
+  height: 100svh;
   width: 100%;
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
+  background: var(--white);
 }
 
 .screen--visible {
   display: flex;
 }
 
-/* ============================================================================
-   HEADER
-   ============================================================================ */
+/* ── Header ─────────────────────────────────────────────────────────────── */
 
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  height: 44px;
-  padding: 0 20px;
-  border-bottom: 1px solid var(--black);
-  background-color: var(--white);
-  position: relative;
+  justify-content: space-between;
+  /* env() used directly — more reliable than CSS custom properties on iOS */
+  padding: env(safe-area-inset-top, 0px) 20px 0;
+  height: calc(44px + env(safe-area-inset-top, 0px));
+  border-bottom: var(--border-width) solid var(--black);
+  flex-shrink: 0;
+  background: var(--white);
   z-index: 10;
 }
 
 .logo {
   font-family: 'Inter', sans-serif;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
 }
 
 .info-btn {
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: 1px solid var(--black);
+  width: 26px;
+  height: 26px;
+  border: var(--border-width) solid var(--black);
   border-radius: 50%;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s, color 0.2s;
+  line-height: 1;
 }
 
 .info-btn:hover {
-  background-color: var(--black);
+  background: var(--black);
   color: var(--white);
+  -webkit-text-fill-color: var(--white);
 }
 
-.info-btn:focus {
-  outline: 2px solid var(--red);
-  outline-offset: 2px;
-}
-
-.header--task {
-  border-bottom: 1px solid var(--black);
-}
-
-.signal-dot {
+/* Header signal dot (task screen) */
+.signal-dot-header {
   width: 8px;
   height: 8px;
-  background-color: var(--red);
   border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
 }
 
-/* ============================================================================
-   SELECTION SCREEN - MAIN CONTENT
-   ============================================================================ */
+/* ── Selection screen — main ────────────────────────────────────────────── */
 
 .selection-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  overflow-y: auto;
-  gap: 20px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Headline block */
+.headline-block {
+  padding: 16px 20px 12px;
+  flex-shrink: 0;
 }
 
 .headline {
   display: flex;
   flex-direction: column;
-  line-height: 1;
-  gap: 4px;
-}
-
-.headline span {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(64px, 18vw, 96px);
-  letter-spacing: 0.02em;
-  font-weight: 400;
+  font-size: clamp(56px, 17vw, 80px);
+  line-height: 0.92;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
+  letter-spacing: 0.01em;
 }
 
 .headline--red {
   color: var(--red);
+  -webkit-text-fill-color: var(--red);
 }
 
 .tagline {
+  margin-top: 10px;
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   letter-spacing: 0.2em;
-  text-transform: uppercase;
   color: var(--black);
+  -webkit-text-fill-color: var(--black);
 }
 
-/* ============================================================================
-   TILE GRID LAYOUT
-   ============================================================================ */
+/* ── Tile groups ────────────────────────────────────────────────────────── */
 
 .tile-group {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  display: flex;
   flex: 1;
-  min-height: 140px;
+  min-height: 0;
+  border-top: var(--border-width) solid var(--black);
 }
 
+.tile-group + .tile-group {
+  /* Second row separated from first by shared border */
+}
+
+/* ── Tile ───────────────────────────────────────────────────────────────── */
+
 .tile {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 20px;
-  background-color: var(--white);
-  border: 1px solid var(--black);
+  gap: 10px;
+  padding: 16px 8px;
+  border: none;
+  border-right: var(--border-width) solid var(--black);
+  background: var(--white);
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
   cursor: pointer;
-  transition: background-color 0.1s, color 0.1s;
-  font-family: 'Inter', sans-serif;
-  position: relative;
+  transition: background 0.1s, color 0.1s;
+  min-height: 0;
+  /* Prevent iOS from making this blue */
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
 }
 
-.tile:hover {
-  background-color: var(--light-grey);
+.tile:last-child {
+  border-right: none;
 }
 
-.tile:focus {
-  outline: 2px solid var(--red);
-  outline-offset: -2px;
+.tile-icon {
+  color: var(--black);
+  -webkit-text-fill-color: initial; /* SVG uses fill, not text-fill-color */
+  line-height: 0;
 }
 
-.tile.selected {
-  background-color: var(--black);
-  color: var(--white);
-}
-
-.tile svg {
-  width: 44px;
-  height: 44px;
-  color: inherit;
+.tile-icon svg {
+  color: var(--black);
 }
 
 .tile-label {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px;
-  letter-spacing: 0.05em;
+  font-size: clamp(18px, 5vw, 22px);
+  letter-spacing: 0.04em;
   line-height: 1;
-  font-weight: 400;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
 }
 
 .tile-sublabel {
   font-family: 'Inter', sans-serif;
-  font-size: 9px;
-  font-weight: 500;
+  font-size: 8px;
+  font-weight: 600;
   letter-spacing: 0.15em;
-  color: var(--grey);
   text-transform: uppercase;
+  color: var(--grey);
+  -webkit-text-fill-color: var(--grey);
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Selected state */
+.tile.selected {
+  background: var(--black);
+  color: var(--white);
+  -webkit-text-fill-color: var(--white);
+}
+
+.tile.selected .tile-icon svg {
+  color: var(--white);
+}
+
+.tile.selected .tile-label {
+  color: var(--white);
+  -webkit-text-fill-color: var(--white);
 }
 
 .tile.selected .tile-sublabel {
-  color: #999;
+  color: rgba(255, 255, 255, 0.6);
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.6);
 }
 
-/* ============================================================================
-   SELECTION SCREEN - FOOTER
-   ============================================================================ */
+/* Hover (desktop only) */
+@media (hover: hover) {
+  .tile:not(.selected):hover {
+    background: #f0f0f0;
+  }
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
 
 .footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  height: 56px;
-  padding: 0 20px;
-  border-top: 1px solid var(--black);
-  background-color: var(--white);
-  position: relative;
-  z-index: 10;
+  justify-content: space-between;
+  /* env() used directly — padding-bottom keeps the button above the iOS home bar.
+     The extra 8px gives a comfortable buffer above the system UI. */
+  padding: 0 16px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  min-height: 56px;
+  border-top: var(--border-width) solid var(--black);
+  flex-shrink: 0;
+  background: var(--white);
 }
 
 .footer-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
 }
 
-.footer-text span {
-  font-family: 'Inter', sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
+/* ── Roll The Dice button ───────────────────────────────────────────────── */
 
 .roll-btn {
-  width: 160px;
-  height: 44px;
-  background-color: var(--white);
+  height: 40px;
+  padding: 0 20px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  border: var(--border-width) solid var(--black);
+  background: var(--white);
   color: var(--black);
-  border: 1px solid var(--black);
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, opacity 0.2s;
-}
-
-.roll-btn:hover:not(:disabled) {
-  background-color: var(--light-grey);
-}
-
-.roll-btn:focus:not(:disabled) {
-  outline: 2px solid var(--red);
-  outline-offset: 2px;
-}
-
-.roll-btn:disabled {
-  opacity: 0.5;
+  -webkit-text-fill-color: var(--black);
   cursor: not-allowed;
+  opacity: 0.35;
+  white-space: nowrap;
 }
 
-.roll-btn.active {
-  background-color: var(--red);
-  color: var(--white);
+.roll-btn.active,
+.roll-btn:not(:disabled) {
+  background: var(--red);
   border-color: var(--red);
+  color: var(--white);
+  -webkit-text-fill-color: var(--white);
   cursor: pointer;
+  opacity: 1;
 }
 
-.roll-btn.active:hover {
-  background-color: #c71d23;
+@media (hover: hover) {
+  .roll-btn.active:hover {
+    background: #b8181e;
+    border-color: #b8181e;
+  }
 }
 
-/* ============================================================================
-   TASK SCREEN - MAIN CONTENT
-   ============================================================================ */
+/* ── Task screen ────────────────────────────────────────────────────────── */
 
 .task-main {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  overflow-y: auto;
+  padding: 16px 20px;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .task-container {
-  border: 1px solid var(--black);
-  padding: 40px 30px;
-  text-align: center;
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
+  border: var(--border-width) solid var(--black);
+  padding: 20px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .directive-label {
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.25em;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--black);
-  margin-bottom: 20px;
+  color: var(--grey);
+  -webkit-text-fill-color: var(--grey);
+  margin-bottom: 14px;
 }
 
 .task-text {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(48px, 12vw, 80px);
+  font-size: clamp(40px, 11vw, 68px);
   line-height: 1;
+  letter-spacing: 0.01em;
   color: var(--black);
-  margin-bottom: 16px;
-  font-weight: 400;
+  -webkit-text-fill-color: var(--black);
+  margin-bottom: 12px;
+  word-break: break-word;
 }
 
 .task-text .highlight {
   color: var(--red);
+  -webkit-text-fill-color: var(--red);
 }
 
 .task-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #444444;
-  margin-bottom: 32px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--grey);
+  -webkit-text-fill-color: var(--grey);
+  margin-bottom: 20px;
 }
 
 .timer-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
 }
 
 .timer {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(56px, 15vw, 88px);
+  font-size: clamp(52px, 14vw, 80px);
   line-height: 1;
+  letter-spacing: 0.02em;
   color: var(--black);
-  font-weight: 400;
+  -webkit-text-fill-color: var(--black);
 }
 
-.timer.timer--done {
+.timer--done {
   color: var(--red);
+  -webkit-text-fill-color: var(--red);
 }
 
 .signal-active {
-  font-family: 'Inter', sans-serif;
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--red);
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--black);
+  -webkit-text-fill-color: var(--black);
 }
 
 .signal-dot-inline {
   width: 6px;
   height: 6px;
-  background-color: var(--red);
   border-radius: 50%;
-  display: inline-block;
+  background: var(--red);
+  flex-shrink: 0;
 }
 
-/* ============================================================================
-   TASK SCREEN - FOOTER
-   ============================================================================ */
+/* ── Done button ────────────────────────────────────────────────────────── */
 
 .footer--task {
-  border-top: 1px solid var(--black);
+  justify-content: center;
 }
 
 .done-btn {
-  width: 100%;
-  height: 56px;
-  background-color: var(--red);
-  color: var(--white);
-  border: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
+  height: 44px;
+  padding: 0 32px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 18px;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
+  background: var(--red);
+  color: var(--white);
+  -webkit-text-fill-color: var(--white);
+  border: none;
   cursor: pointer;
-  transition: background-color 0.2s;
 }
 
-.done-btn:hover {
-  background-color: #c71d23;
+@media (hover: hover) {
+  .done-btn:hover {
+    background: #b8181e;
+  }
 }
 
-.done-btn:focus {
-  outline: 2px solid var(--black);
-  outline-offset: -2px;
-}
-
-/* ============================================================================
-   MODAL
-   ============================================================================ */
+/* ── Info Modal ─────────────────────────────────────────────────────────── */
 
 .modal {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
-  z-index: 1000;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 100;
   align-items: center;
   justify-content: center;
+  padding: 24px;
 }
 
 .modal.active {
@@ -435,101 +470,143 @@ body {
 }
 
 .modal-content {
-  background-color: var(--white);
-  padding: 40px 30px;
-  max-width: 380px;
-  text-align: center;
-  border: 1px solid var(--black);
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  background: var(--white);
+  border: var(--border-width) solid var(--black);
+  padding: 28px 24px;
+  max-width: 320px;
+  width: 100%;
 }
 
-.modal-content p {
+.modal-text {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.7;
   color: var(--black);
+  -webkit-text-fill-color: var(--black);
+  margin-bottom: 20px;
 }
 
 .modal-close {
-  width: 100%;
-  height: 44px;
-  background-color: var(--black);
-  color: var(--white);
-  border: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
   letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background-color 0.2s;
+  background: var(--black);
+  color: var(--white);
+  -webkit-text-fill-color: var(--white);
+  padding: 10px 24px;
+  display: block;
+  width: 100%;
+  text-align: center;
 }
 
-.modal-close:hover {
-  background-color: #333;
+/* ============================================================================
+   DESKTOP — 768px+
+   Constrain to a centred column, improve proportions.
+   ============================================================================ */
+
+@media (min-width: 768px) {
+
+  body {
+    background: #e8e8e8;
+  }
+
+  .screen {
+    /* Keep position:fixed — just constrain width and centre horizontally.
+       left + transform is the only reliable cross-browser way to centre a fixed element. */
+    width: 560px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    border-left: var(--border-width) solid var(--black);
+    border-right: var(--border-width) solid var(--black);
+    box-shadow: 8px 8px 0 var(--black);
+  }
+
+  .headline-block {
+    padding: 28px 32px 18px;
+  }
+
+  .headline {
+    font-size: 96px;
+    line-height: 0.9;
+  }
+
+  .tagline {
+    font-size: 10px;
+    margin-top: 14px;
+  }
+
+  .tile {
+    gap: 14px;
+    padding: 28px 16px;
+  }
+
+  .tile-icon svg {
+    width: 56px;
+    height: 56px;
+  }
+
+  .tile-label {
+    font-size: 26px;
+  }
+
+  .tile-sublabel {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+  }
+
+  .footer {
+    padding: 0 28px;
+    min-height: 64px;
+  }
+
+  .roll-btn {
+    height: 46px;
+    font-size: 18px;
+    padding: 0 28px;
+  }
+
+  .task-container {
+    padding: 28px 28px 32px;
+  }
+
+  .directive-label {
+    font-size: 10px;
+    margin-bottom: 16px;
+  }
+
+  .task-text {
+    font-size: 72px;
+    margin-bottom: 14px;
+  }
+
+  .task-subtitle {
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .timer {
+    font-size: 88px;
+  }
+
+  .done-btn {
+    font-size: 20px;
+    height: 48px;
+    padding: 0 48px;
+  }
 }
 
-.modal-close:focus {
+/* ── Focus styles (accessibility) ───────────────────────────────────────── */
+
+:focus-visible {
   outline: 2px solid var(--red);
   outline-offset: 2px;
 }
 
-/* ============================================================================
-   RESPONSIVE DESIGN - DESKTOP (768px+)
-   ============================================================================ */
-
-@media (min-width: 768px) {
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .screen {
-    max-width: 480px;
-    width: 100%;
-    height: 100vh;
-    max-height: 100vh;
-    border-left: 1px solid var(--border);
-    border-right: 1px solid var(--border);
-    position: relative;
-    top: 0;
-    left: 0;
-  }
-
-  .headline span {
-    font-size: clamp(64px, 12vw, 96px);
-  }
-
-  .task-text {
-    font-size: clamp(48px, 10vw, 80px);
-  }
-
-  .timer {
-    font-size: clamp(56px, 12vw, 88px);
-  }
-}
-
-/* ============================================================================
-   ACCESSIBILITY
-   ============================================================================ */
+/* ── Reduced motion ─────────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* ============================================================================
-   PRINT STYLES
-   ============================================================================ */
-
-@media print {
-  body {
-    display: none;
+  .tile {
+    transition: none;
   }
 }
